@@ -105,6 +105,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+accessTokenCurl.txt
+spotify_auth.json
+codeFlow.ipynb
+spotifyAuthorizationCode/
 
 # Spyder project settings
 .spyderproject
