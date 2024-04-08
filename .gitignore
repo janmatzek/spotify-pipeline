@@ -109,6 +109,8 @@ accessTokenCurl.txt
 spotify_auth.json
 codeFlow.ipynb
 spotifyAuthorizationCode/
+gcpSpotifyRunner.json
+dropTable.bqsql
 
 # Spyder project settings
 .spyderproject
