@@ -85,7 +85,7 @@ package:
     - "!.mypy_cache/**"
     - "!**/*.csv"
     - "!.vscode/**"
-
     - "!readme.MD"
-    - "!package-lock.json"
-    - "!package.json"
+    - "!spotifyAuthorizationCode/**"
+    - "!accessTokenCurl.txt"
+    - "!dropTable.bqsql"
