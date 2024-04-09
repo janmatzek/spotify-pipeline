@@ -4,7 +4,7 @@ import datetime
 import base64
 import pandas_gbq
 import pandas as pd
-from schema import returnSchema
+from .schema import returnSchema
 from dotenv import load_dotenv
 from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField
@@ -185,7 +185,7 @@ def sendResponse(statusCode, message, e = ''):
     print(response)
     return response
 
-def main():
+def trackData_handler(event, context):
     currentDatetime = datetime.datetime.now(datetime.UTC)
     
     lastQueriedFrom = pd.Timestamp('1970-01-01 00:00:00', tz='UTC')
@@ -286,5 +286,4 @@ def main():
 
     return sendResponse(200, f'you have listened to {len(transformedData)} songs since {lastQueriedFrom}')    
 
-main()
     
