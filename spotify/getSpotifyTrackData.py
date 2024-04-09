@@ -282,8 +282,6 @@ def trackData_handler(event, context):
     except Exception as e:
         return sendResponse(500, 'Failed to upload the data to BigQuery.', e)    
 
-    print(f'you have listened to {len(transformedData)} songs since {lastQueriedFrom}')
-
     return sendResponse(200, f'you have listened to {len(transformedData)} songs since {lastQueriedFrom}')    
 
     
