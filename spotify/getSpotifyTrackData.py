@@ -12,18 +12,18 @@ from google.cloud.bigquery import TableReference
 from google.oauth2 import service_account
 
 
-def table_exists(tableId, client):
-    table_ref = client.dataset(tableId.dataset_id).table(tableId.table_id)
+def table_exists(table_id, client):
+    table_ref = client.dataset(table_id.dataset_id).table(table_id.table_id)
     
     try:
         client.get_table(table_ref)  # Raises an exception if the table doesn't exist
         return True
     except Exception as e:
-        print(f"The table '{tableId}' does not exist.")
+        print(f"The table '{table_id}' does not exist.")
         return False
 
 
-def createBigQueryTable(table_id, schema, client):    
+def create_big_query_table(table_id, schema, client):    
     table_ref = client.dataset(table_id.dataset_id).table(table_id.table_id)
     
     table = bigquery.Table(table_ref, schema=schema)
@@ -32,14 +32,14 @@ def createBigQueryTable(table_id, schema, client):
     print(f"Table '{table_id.table_id}' created successfully in dataset '{table_id.dataset_id}'.")
 
 
-def runBigQueryQuery(query, client):  
+def run_big_query_query(query, client):  
     query_job = client.query(query)
     
     result = query_job.result()
     
     return result
 
-def retrierveAccessToken(clientId: str, clientSecret:str):
+def retrieve_access_token(client_id: str, client_secret:str):
     # RETRIEVE ACCESS TOKEN FROM SPOTIFY
     url = "https://accounts.spotify.com/api/token"
 
@@ -49,67 +49,67 @@ def retrierveAccessToken(clientId: str, clientSecret:str):
 
     body = {
         'grant_type': 'client_credentials',
-        'client_id': clientId,
-        'client_secret': clientSecret
+        'client_id': client_id,
+        'client_secret': client_secret
     }
 
     response = requests.post(url, data=body, headers=headers)
 
-    responseData = response.json() 
+    response_data = response.json() 
 
-    accessToken = responseData['access_token']
+    access_token = response_data['access_token']
 
-    return accessToken
+    return access_token
 
 
-def refreshAccessToken(clientId: str, clientSecret:str, refreshToken:str, authorizationCode:str):
+def refresh_access_token(client_id: str, client_secret:str, refresh_token:str, authorization_code:str):
     # RETRIEVE ACCESS TOKEN FROM SPOTIFY
     url = "https://accounts.spotify.com/api/token"
 
-    encodedCredentials = base64.b64encode(clientId.encode() + b':' + clientSecret.encode()).decode("utf-8")
+    encoded_credentials = base64.b64encode(client_id.encode() + b':' + client_secret.encode()).decode("utf-8")
 
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': f'Basic {encodedCredentials}'
+        'Authorization': f'Basic {encoded_credentials}'
     }
 
     body = {
         'grant_type': 'refresh_token',
-        'refresh_token': refreshToken,
-        'client_id': clientId,
+        'refresh_token': refresh_token,
+        'client_id': client_id,
     }
 
     response = requests.post(url, data=body, headers=headers)
 
-    responseData = response.json() 
+    response_data = response.json() 
     
-    token = responseData['access_token']
+    token = response_data['access_token']
 
     return token
 
 
-def findArtist(accessToken:str):
+def find_artist(access_token:str):
     artistId = '19EXmY8ETqXPinMES14I7q'
     url = f'https://api.spotify.com/v1/artists/{artistId}'
 
     # Define headers
     headers = {
-        'Authorization': f'Bearer {accessToken}'
+        'Authorization': f'Bearer {access_token}'
     }
 
     # Make a GET request
     response = requests.get(url, headers=headers)
-    artistData = response.json()
+    artist_data = response.json()
 
-    return artistData
+    return artist_data
 
 
-def getRecentlyPlayedTracks(accessToken, queryFrom):
+def ger_recently_played_tracks(access_token, query_from):
 
-    url = f'https://api.spotify.com/v1/me/player/recently-played?limit=50&after={queryFrom}'
+    url = f'https://api.spotify.com/v1/me/player/recently-played?limit=50&after={query_from}'
 
     headers = {
-        'Authorization': f'Bearer {accessToken}'
+        'Authorization': f'Bearer {access_token}'
     }
     
     response = requests.get(url=url, headers=headers)
@@ -122,23 +122,23 @@ def getRecentlyPlayedTracks(accessToken, queryFrom):
     return data
 
 
-def renameColumns(col):
-    parts = col.split('.')
-    parts = [part.split('_') for part in parts]
-    flattened = [item for sublist in parts for item in sublist]
-    return flattened[0].lower() + ''.join(word.capitalize() for word in flattened[1:])
+# def renameColumns(col):
+#     parts = col.split('.')
+#     parts = [part.split('_') for part in parts]
+#     flattened = [item for sublist in parts for item in sublist]
+#     return flattened[0].lower() + ''.join(word.capitalize() for word in flattened[1:])
 
 
-def transformSpotifyTrackData(data, currentDatetime):
+def transform_spotify_track_data(data, current_datetime):
 
     for index, item in enumerate(data['items']):
         data['items'][index]['track']['artists'] = data['items'][index]['track']['artists'][0]
         data['items'][index]['track']['album']['images'] = data['items'][index]['track']['album']['images'][0]
 
     # Flatten the JSON data using pandas
-    flattenedData = pd.json_normalize(data, record_path='items',)
+    flattened_data = pd.json_normalize(data, record_path='items',)
 
-    columnsToKeep = [
+    columns_to_keep = [
         'track.name',
         'track.explicit',
         'track.popularity',
@@ -162,127 +162,127 @@ def transformSpotifyTrackData(data, currentDatetime):
         'track.duration_ms'
     ]
 
-    flattenedData = flattenedData[columnsToKeep]
+    flattened_data = flattened_data[columns_to_keep]
 
-    betterColumnNames = {col: renameColumns(col) for col in flattenedData.columns}
-    # betterColumnNames = {col: col.replace('.','_') for col in flattenedData.columns}
+    # better_column_names = {col: renameColumns(col) for col in flattened_data.columns}
+    better_column_names = {col: col.replace('.','_') for col in flattened_data.columns}
 
-    flattenedData = flattenedData.rename(columns=betterColumnNames)
+    flattened_data = flattened_data.rename(columns=better_column_names)
 
-    flattenedData['queriedAt'] = currentDatetime
+    flattened_data['queried_at'] = current_datetime
 
-    return(flattenedData)
+    return(flattened_data)
 
-def sendResponse(statusCode, message, e = ''):
+def send_response(status_code, message, e = ''):
     if e == '':
         sep = ''
     else:
         sep = '\n'
 
     response = {
-        'status': statusCode,
+        'status': status_code,
         'message': f'{message}{sep}{e}'
     }
     print(response)
     return response
 
 def trackData_handler(event, context):
-    currentDatetime = datetime.datetime.now(datetime.UTC)
+    current_datetime = datetime.datetime.now(datetime.UTC)
     
-    lastQueriedFrom = pd.Timestamp('1970-01-01 00:00:00', tz='UTC')
+    last_queried_from = pd.Timestamp('1970-01-01 00:00:00', tz='UTC')
 
     # get environmenmt variables
     load_dotenv()
 
-    clientId = os.getenv('SPOTIFY_CLIENT_ID')
-    clientSecret = os.getenv('SPOTIFY_CLIENT_SECRET')
-    refreshToken = os.getenv('REFRESH_TOKEN')
-    authorizationCode = os.getenv('AUTHORIZATION_CODE')
-    credentialsPath = os.getenv('SERVICE_ACCOUNT_PATH')
-    destinationTableId = os.getenv('TABLE_ID')
+    client_id = os.getenv('SPOTIFY_CLIENT_ID')
+    client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
+    refresh_token = os.getenv('REFRESH_TOKEN')
+    authorization_code = os.getenv('AUTHORIZATION_CODE')
+    credentials_path = os.getenv('SERVICE_ACCOUNT_PATH')
+    destination_table_id = os.getenv('TABLE_ID')
 
-    bqTableReference = TableReference.from_string(destinationTableId)
-    tableSchema = returnSchema()
-    bigQuerySchema = [SchemaField(field['name'], field['type']) for field in tableSchema]
+    bq_table_reference = TableReference.from_string(destination_table_id)
+    table_schema = returnSchema()
+    bigquery_schema = [SchemaField(field['name'], field['type']) for field in table_schema]
 
     # set up BigQuery client
     try:
-        bigQueryclient = bigquery.Client(credentials=service_account.Credentials.from_service_account_file(credentialsPath))
+        bigquery_client = bigquery.Client(credentials=service_account.Credentials.from_service_account_file(credentials_path))
     except Exception as e:
-        return sendResponse(500, 'Failed to set up BigQuery client', e)
+        return send_response(500, 'Failed to set up BigQuery client', e)
     
     # check if destination table exists in BigQUery
-    if table_exists(bqTableReference, bigQueryclient):
-        # query max playedAt
-        strQuery = f'SELECT MAX(playedAt) FROM `{destinationTableId}`'
-        result = runBigQueryQuery(strQuery, bigQueryclient)
+    if table_exists(bq_table_reference, bigquery_client):
+        # query max played_at
+        str_query = f'SELECT MAX(played_at) FROM `{destination_table_id}`'
+        result = run_big_query_query(str_query, bigquery_client)
         for row in result:
-            lastQueriedFrom = row[0]
-            queryFrom = int(row[0].timestamp())
+            last_queried_from = row[0]
+            query_from = int(row[0].timestamp())
     else:
-        queryFrom = '0000000001'
-        createBigQueryTable(bqTableReference, bigQuerySchema, bigQueryclient)
+        query_from = '0000000001'
+        create_big_query_table(bq_table_reference, bigquery_schema, bigquery_client)
 
-    # queryFromTimestamp = pd.to_datetime(queryFrom).tz_localize('UTC')
+    # query_fromTimestamp = pd.to_datetime(query_from).tz_localize('UTC')
     
-    # if lastQueriedFrom:
-    #     print(f'querying from {lastQueriedFrom}')
+    # if last_queried_from:
+    #     print(f'querying from {last_queried_from}')
     # else:
-    #     lastQueriedFrom = 'beginning of time'
+    #     last_queried_from = 'beginning of time'
 
     # get access token using your refresh token
     try:
-        token = refreshAccessToken(clientId, clientSecret, refreshToken, authorizationCode)
+        token = refresh_access_token(client_id, client_secret, refresh_token, authorization_code)
     except Exception as e:
-        return sendResponse(500, 'Failed to refresh access token.', e)
+        return send_response(500, 'Failed to refresh access token.', e)
     
     # retrieve the data from the API
     try:
-        trackData = getRecentlyPlayedTracks(token, queryFrom)
+        trackData = ger_recently_played_tracks(token, query_from)
     except Exception as e:
-        return sendResponse(500, 'Failed to retrieve the data from the API.', e)  
+        return send_response(500, 'Failed to retrieve the data from the API.', e)  
        
     # flatten the json and keep the data you want
     try:
-        transformedData = transformSpotifyTrackData(trackData, currentDatetime)
+        transformed_data = transform_spotify_track_data(trackData, current_datetime)
     except Exception as e:
-        return sendResponse(500, 'Failed to transform the data.', e)
+        return send_response(500, 'Failed to transform the data.', e)
     
     # coerce the data types before pushing stuff to bigQuery
     try:
-        for field in tableSchema:
-            colName = field['name']
-            dataType = field['type']
+        for field in table_schema:
+            col_name = field['name']
+            data_type = field['type']
             
-            if dataType == 'INTEGER':
-                transformedData[colName] = pd.to_numeric(transformedData[colName], errors='coerce').astype('Int64')
-            elif dataType == 'FLOAT': 
-                transformedData[colName] = pd.to_numeric(transformedData[colName], errors='coerce')
-            elif dataType == 'STRING':
-                transformedData[colName] = transformedData[colName].apply(lambda x: str(x) if x is not None else None)
-            elif dataType == 'TIMESTAMP':
-                transformedData[colName] = pd.to_datetime(transformedData[colName], errors='coerce')
+            if data_type == 'INTEGER':
+                transformed_data[col_name] = pd.to_numeric(transformed_data[col_name], errors='coerce').astype('Int64')
+            elif data_type == 'FLOAT': 
+                transformed_data[col_name] = pd.to_numeric(transformed_data[col_name], errors='coerce')
+            elif data_type == 'STRING':
+                transformed_data[col_name] = transformed_data[col_name].apply(lambda x: str(x) if x is not None else None)
+            elif data_type == 'TIMESTAMP':
+                transformed_data[col_name] = pd.to_datetime(transformed_data[col_name], errors='coerce')
 
         # Replace NaN values with None
-        transformedData = transformedData.where(pd.notnull(transformedData), None)
+        transformed_data = transformed_data.where(pd.notnull(transformed_data), None)
 
     except Exception as e:
-        return sendResponse(500, 'Failed to apply data validation.', e)
+        return send_response(500, 'Failed to apply data validation.', e)
 
-    transformedData = transformedData[transformedData['playedAt'] > lastQueriedFrom]
+    transformed_data = transformed_data[transformed_data['played_at'] > last_queried_from]
 
     # send the data to BigQuery
     try:
-        pandas_gbq.to_gbq(dataframe=transformedData,
-                        project_id=destinationTableId.split('.')[0],
-                        destination_table=destinationTableId, 
+        pandas_gbq.to_gbq(dataframe=transformed_data,
+                        project_id=destination_table_id.split('.')[0],
+                        destination_table=destination_table_id, 
                         if_exists='append', 
-                        table_schema=tableSchema,
-                        credentials=service_account.Credentials.from_service_account_file(credentialsPath)
+                        table_schema=table_schema,
+                        credentials=service_account.Credentials.from_service_account_file(credentials_path)
                         )
     except Exception as e:
-        return sendResponse(500, 'Failed to upload the data to BigQuery.', e)    
+        return send_response(500, 'Failed to upload the data to BigQuery.', e)    
 
-    return sendResponse(200, f'you have listened to {len(transformedData)} songs since {lastQueriedFrom}')    
+    return send_response(200, f'you have listened to {len(transformed_data)} songs since {last_queried_from}')    
 
     
