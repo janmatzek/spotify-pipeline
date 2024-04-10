@@ -6,7 +6,8 @@ provider:
   name: aws
   runtime: python3.11
   stage: dev
-  architecture:
+  profile: janMatzek
+  architecture: x86_64
   timeout: 30
   memorySize: 1024
   environment:
@@ -47,45 +48,23 @@ package:
   patterns:
     - "!__pycache__/**"
     - "!.vscode/**"
-    - "!node_modules/**"
-    - "!countriesLocations/__pycache__/**"
     - "!venv/**"
-    - "!.env"
-    - "!.envrc"
     - "!.gitignore"
-    - "!package-lock.json"
-    - "!package.json"
     - "!requirements.txt"
-    - "!.trunk/**"
     - "!.git/**"
     - "!.gitignore"
     - "!.gitmodules"
     - "!__pycache__/**"
-    - "!.pytest_cache/**"
     - "!.venv/**"
-    - "!venv/**"
-    - "!node_modules/**"
-    - "!/node_modules/**"
-    - "!.node_modules/**"
-    - "!.serverless/**"
     - "!serverless/**"
-    - "!.serverless"
     - "!.serverless_plugins/**"
     - "!.DS_Store"
     - "!.env"
-    - "!.requirements/**"
-    - "!.requirements.zip"
-    - "!.requirements/**"
-    - "!aws/**"
-    - "!/aws/**"
-    - "!aws.env"
-    - "!convertorScripts/**"
-    - "!tst.json"
-    - "!bigqueryQueries/**"
-    - "!.mypy_cache/**"
+    - "!requirements"
     - "!**/*.csv"
     - "!.vscode/**"
     - "!readme.MD"
     - "!spotifyAuthorizationCode/**"
     - "!accessTokenCurl.txt"
     - "!dropTable.bqsql"
+    - "!.ipynb.checkpoints/**"

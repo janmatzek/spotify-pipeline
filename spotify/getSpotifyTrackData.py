@@ -12,7 +12,7 @@ from google.cloud.bigquery import TableReference
 from google.oauth2 import service_account
 
 
-def tableExists(tableId, client):
+def table_exists(tableId, client):
     table_ref = client.dataset(tableId.dataset_id).table(tableId.table_id)
     
     try:
@@ -165,6 +165,7 @@ def transformSpotifyTrackData(data, currentDatetime):
     flattenedData = flattenedData[columnsToKeep]
 
     betterColumnNames = {col: renameColumns(col) for col in flattenedData.columns}
+    # betterColumnNames = {col: col.replace('.','_') for col in flattenedData.columns}
 
     flattenedData = flattenedData.rename(columns=betterColumnNames)
 
@@ -211,7 +212,7 @@ def trackData_handler(event, context):
         return sendResponse(500, 'Failed to set up BigQuery client', e)
     
     # check if destination table exists in BigQUery
-    if tableExists(bqTableReference, bigQueryclient):
+    if table_exists(bqTableReference, bigQueryclient):
         # query max playedAt
         strQuery = f'SELECT MAX(playedAt) FROM `{destinationTableId}`'
         result = runBigQueryQuery(strQuery, bigQueryclient)
