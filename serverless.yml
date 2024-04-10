@@ -68,3 +68,6 @@ package:
     - "!accessTokenCurl.txt"
     - "!dropTable.bqsql"
     - "!.ipynb.checkpoints/**"
+    - "!ipynb_checkpoints/**"
+    - "!spotify/__pycache__"
+    - "!spotify/dropTable.bqsql"
