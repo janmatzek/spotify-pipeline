@@ -24,7 +24,16 @@ functions:
           method: get
           cors: true
           authorizer: null
-
+  artistsData_etl:
+    handler: spotify/getArtistsData.fetch_artists_data
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
+    events:
+      - http:
+          path: /fetchArtistsData
+          method: get
+          cors: true
+          authorizer: null
 plugins:
   - serverless-python-requirements
   - serverless-dotenv-plugin
