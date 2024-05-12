@@ -15,7 +15,7 @@ provider:
 
 functions:
   spotifyTrackData_etl:
-    handler: spotify/getSpotifyTrackData.trackData_handler
+    handler: spotify/get_track_data.track_data_handler
     layers:
       - Ref: PythonRequirementsLambdaLayer
     events:
@@ -25,7 +25,7 @@ functions:
           cors: true
           authorizer: null
   artistsData_etl:
-    handler: spotify/getArtistsData.fetch_artists_data
+    handler: spotify/get_artist_data.fetch_artists_data
     layers:
       - Ref: PythonRequirementsLambdaLayer
     events:
