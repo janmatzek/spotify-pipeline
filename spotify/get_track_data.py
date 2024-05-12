@@ -13,22 +13,18 @@ from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField, TableReference
 from google.oauth2 import service_account
 
-from .schema import returnSchema
-
-
-def table_exists(table_id, client):
-    table_ref = client.dataset(table_id.dataset_id).table(table_id.table_id)
-
-    try:
-        # Raises an exception if the table doesn't exist
-        client.get_table(table_ref)
-        return True
-    except Exception:
-        print(f"The table '{table_id}' does not exist.")
-        return False
+from .schema import return_schema
+from .utils import send_response, table_exists
 
 
 def create_big_query_table(table_id, schema, client):
+    """
+    Creates a table in BigQuery.
+    Args:
+        table_id (str): The ID of the table to create
+        schema (list of dicts): schema of the created table
+        client: BigQuery client
+    """
     table_ref = client.dataset(table_id.dataset_id).table(table_id.table_id)
 
     table = bigquery.Table(table_ref, schema=schema)
@@ -38,6 +34,12 @@ def create_big_query_table(table_id, schema, client):
 
 
 def run_big_query_query(query, client):
+    """
+    Runs a BigQuery query
+    args:
+        query (str): SQL query
+        client: BigQuery client
+    """
     query_job = client.query(query)
 
     result = query_job.result()
@@ -45,10 +47,11 @@ def run_big_query_query(query, client):
     return result
 
 
-def refresh_access_token(
-    client_id: str, client_secret: str, refresh_token: str, authorization_code: str
-):
-    # RETRIEVE ACCESS TOKEN FROM SPOTIFY
+def refresh_access_token(client_id: str, client_secret: str, refresh_token: str):
+    """
+    Retrieve a short-lived access token from Spotify API
+    """
+    # , authorization_code: str
     url = "https://accounts.spotify.com/api/token"
 
     encoded_credentials = base64.b64encode(
@@ -66,7 +69,7 @@ def refresh_access_token(
         "client_id": client_id,
     }
 
-    response = requests.post(url, data=body, headers=headers)
+    response = requests.post(url, data=body, headers=headers, timeout=10)
 
     response_data = response.json()
 
@@ -75,105 +78,91 @@ def refresh_access_token(
     return token
 
 
-def find_artist(access_token: str):
-    artistId = "19EXmY8ETqXPinMES14I7q"
-    url = f"https://api.spotify.com/v1/artists/{artistId}"
-
-    # Define headers
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    # Make a GET request
-    response = requests.get(url, headers=headers)
-    artist_data = response.json()
-
-    return artist_data
-
-
-def ger_recently_played_tracks(access_token, query_from):
-
+def get_recently_played_tracks(access_token: str, query_from: int):
+    """
+    Retrieves 'recently played' data from Spotify API
+    Args:
+        access_token (str): access token to authenticate access to user data
+        query_from (int): unix timestamp, start point from which the data will be queried.
+            Can be whatever value as it does not seem to influence the response of the API
+    Returns:
+        A list of dicts containing the tracks data
+    """
     url = f"https://api.spotify.com/v1/me/player/recently-played?limit=50&after={query_from}"
 
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    response = requests.get(url=url, headers=headers)
+    response = requests.get(url=url, headers=headers, timeout=30)
     data = response.json()
-
-    # Save the retrieved data to a JSON file
-    # with open('tracks.json', 'w') as f:
-    #     json.dump(data, f)
 
     return data
 
 
-# def renameColumns(col):
-#     parts = col.split('.')
-#     parts = [part.split('_') for part in parts]
-#     flattened = [item for sublist in parts for item in sublist]
-#     return flattened[0].lower() + ''.join(word.capitalize() for word in flattened[1:])
-
-
 def transform_spotify_track_data(data, current_datetime):
+    """
+    Processes the data from Spotify API - selects first artist, first image,
+        flattens the json and returns the data as a DataFrame
+    Args:
+        data: the list of dicts from Spotify API
+        current_datetime (timestamp): current timestamp which will be printed to 'queried_at' column
+    """
 
     for index, item in enumerate(data["items"]):
-        data["items"][index]["track"]["artists"] = data["items"][index]["track"]["artists"][0]
-        data["items"][index]["track"]["album"]["images"] = data["items"][index]["track"]["album"][
-            "images"
-        ][0]
+        if data["items"][index]["track"]["artists"]:
+            data["items"][index]["track"]["artists"] = data["items"][index]["track"]["artists"][0]
+        if data["items"][index]["track"]["album"]["images"]:
+            data["items"][index]["track"]["album"]["images"] = data["items"][index]["track"][
+                "album"
+            ]["images"][0]
 
     # Flatten the JSON data using pandas
-    flattened_data = pd.json_normalize(
-        data,
-        record_path="items",
-    )
+    flattened_data = pd.json_normalize(data, record_path="items", sep="_")
 
     columns_to_keep = [
-        "track.name",
-        "track.explicit",
-        "track.popularity",
-        "track.id",
-        "track.track_number",
-        "track.type",
+        "track_name",
+        "track_explicit",
+        "track_popularity",
+        "track_id",
+        "track_track_number",
+        "track_type",
         "played_at",
-        "context.type",
-        "context.external_urls.spotify",
-        "track.artists.id",
-        "track.artists.name",
-        "track.artists.type",
-        "track.album.album_type",
-        "track.album.id",
-        "track.album.images.url",
-        "track.album.images.height",
-        "track.album.name",
-        "track.album.release_date",
-        "track.album.release_date_precision",
-        "track.album.total_tracks",
-        "track.duration_ms",
+        "context_type",
+        "context_external_urls_spotify",
+        "track_artists_id",
+        "track_artists_name",
+        "track_artists_type",
+        "track_album_album_type",
+        "track_album_id",
+        "track_album_images_url",
+        "track_album_images_height",
+        "track_album_name",
+        "track_album_release_date",
+        "track_album_release_date_precision",
+        "track_album_total_tracks",
+        "track_duration_ms",
     ]
 
     flattened_data = flattened_data[columns_to_keep]
 
     # better_column_names = {col: renameColumns(col) for col in flattened_data.columns}
-    better_column_names = {col: col.replace(".", "_") for col in flattened_data.columns}
+    # better_column_names = {col: col.replace(".", "_") for col in flattened_data.columns}
 
-    flattened_data = flattened_data.rename(columns=better_column_names)
+    # flattened_data = flattened_data.rename(columns=better_column_names)
 
     flattened_data["queried_at"] = current_datetime
 
     return flattened_data
 
 
-def send_response(status_code, message, e=""):
-    if e == "":
-        sep = ""
-    else:
-        sep = "\n"
+def track_data_handler(event, context):
+    """
+    Lambda function handler for fetching data form the Spotify API
+    """
+    event_body = event.get("body", {}) if "body" in event else {}
+    print("Received event:", json.dumps(event_body))
 
-    response = {"status_code": status_code, "body": json.dumps({"message": f"{message}{sep}{e}"})}
-    print(response)
-    return response
+    print(f"Running {context.function_name}")
 
-
-def trackData_handler(event, context):
     current_datetime = datetime.datetime.now(datetime.UTC)
 
     last_queried_from = pd.Timestamp("1970-01-01 00:00:00", tz="UTC")
@@ -184,12 +173,12 @@ def trackData_handler(event, context):
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
     refresh_token = os.getenv("REFRESH_TOKEN")
-    authorization_code = os.getenv("AUTHORIZATION_CODE")
+    # authorization_code = os.getenv("AUTHORIZATION_CODE")
     credentials_path = os.getenv("SERVICE_ACCOUNT_PATH")
     destination_table_id = os.getenv("TABLE_ID")
 
     bq_table_reference = TableReference.from_string(destination_table_id)
-    table_schema = returnSchema()
+    table_schema = return_schema()
     bigquery_schema = [SchemaField(field["name"], field["type"]) for field in table_schema]
 
     # set up BigQuery client
@@ -197,7 +186,7 @@ def trackData_handler(event, context):
         bigquery_client = bigquery.Client(
             credentials=service_account.Credentials.from_service_account_file(credentials_path)
         )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to set up BigQuery client", e)
 
     # check if destination table exists in BigQUery
@@ -214,20 +203,20 @@ def trackData_handler(event, context):
 
     # get access token using your refresh token
     try:
-        token = refresh_access_token(client_id, client_secret, refresh_token, authorization_code)
-    except Exception as e:
+        token = refresh_access_token(client_id, client_secret, refresh_token)
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to refresh access token.", e)
 
     # retrieve the data from the API
     try:
-        trackData = ger_recently_played_tracks(token, query_from)
-    except Exception as e:
+        track_data = get_recently_played_tracks(token, query_from)
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to retrieve the data from the API.", e)
 
     # flatten the json and keep the data you want
     try:
-        transformed_data = transform_spotify_track_data(trackData, current_datetime)
-    except Exception as e:
+        transformed_data = transform_spotify_track_data(track_data, current_datetime)
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to transform the data.", e)
 
     #  coerce the data types before pushing stuff to bigQuery
@@ -256,7 +245,7 @@ def trackData_handler(event, context):
         # Replace NaN values with None
         transformed_data = transformed_data.where(pd.notnull(transformed_data), None)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to apply data validation.", e)
 
     transformed_data = transformed_data[transformed_data["played_at"] > last_queried_from]
@@ -271,7 +260,7 @@ def trackData_handler(event, context):
             table_schema=table_schema,
             credentials=service_account.Credentials.from_service_account_file(credentials_path),
         )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return send_response(500, "Failed to upload the data to BigQuery.", e)
 
     return send_response(
