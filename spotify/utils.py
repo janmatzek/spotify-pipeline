@@ -48,7 +48,7 @@ def send_response(status_code: int, message: str, e=""):
 
     message = f"{message}{sep}{e}"
 
-    if status_code == 200:
+    if status_code in [200, 202]:
         send_as_alert = False
     else:
         send_as_alert = True
