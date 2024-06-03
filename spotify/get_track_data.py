@@ -114,6 +114,10 @@ def transform_spotify_track_data(data, current_datetime):
             data["items"][index]["track"]["album"]["images"] = data["items"][index]["track"][
                 "album"
             ]["images"][0]
+        if data["items"][index]["context"] is None:
+            data["items"][index]["context"] = {}
+            data["items"][index]["context"]["type"] = None
+            data["items"][index]["context"]["context_external_urls_spotify"] = None
 
     # Flatten the JSON data using pandas
     flattened_data = pd.json_normalize(data, record_path="items", sep="_")
