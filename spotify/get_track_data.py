@@ -122,6 +122,9 @@ def transform_spotify_track_data(data, current_datetime):
     # Flatten the JSON data using pandas
     flattened_data = pd.json_normalize(data, record_path="items", sep="_")
 
+    if "context_external_urls_spotify" not in flattened_data.columns:
+        flattened_data["context_external_urls_spotify"] = None
+
     columns_to_keep = [
         "track_name",
         "track_explicit",
